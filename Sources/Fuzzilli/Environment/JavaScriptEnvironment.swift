@@ -41,7 +41,7 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
     ]
 
     static let wellKnownSymbols = ["iterator", "asyncIterator", "match", "matchAll", "replace", "search", "split", "hasInstance", "isConcatSpreadable", "unscopables", "species", "toPrimitive", "toStringTag"]
-
+    
     public let interestingIntegers = InterestingIntegers
 
     // Double values that are more likely to trigger edge-cases.
@@ -304,6 +304,8 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
     private var builtinTypes: [String: ILType] = [:]
     private var groups: [String: ObjectGroup] = [:]
 
+    static let OffscreenCreateParametersReason = ["TESTING", "AUDIO_PLAYBACK", "IFRAME_SCRIPTING", "DOM_SCRAPING", "BLOBS", "DOM_PARSER", "USER_MEDIA", "DISPLAY_MEDIA", "WEB_RTC", "CLIPBOARD", "LOCAL_STORAGE", "WORKERS", "BATTERY_STATUS", "MATCH_MEDIA", "GEOLOCATION"]
+
     public init(additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []) {
         super.init(name: "JavaScriptEnvironment")
 
@@ -408,6 +410,11 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         registerBuiltin("undefined", ofType: .jsUndefined)
         registerBuiltin("NaN", ofType: .jsNaN)
         registerBuiltin("Infinity", ofType: .jsInfinity)
+
+        // Register Exnteion API
+        registerObjectGroup(.jsOffscreenObject)
+        registerBuiltin("chrome.offscreen", ofType: .jsOffscreenObject)
+
 
         for (builtin, type) in additionalBuiltins {
             registerBuiltin(builtin, ofType: type)
@@ -724,6 +731,9 @@ public extension ILType {
 
     /// Type of the JavaScript Infinity value.
     static let jsInfinity = ILType.float
+
+    /// Type of the JavaScript offscreen object
+    static let jsOffscreenObject = ILType.object(ofGroup: "Offscreen", withMethods: ["closeDocument", "createDocument"])
 }
 
 // Type information for the object groups that we use to model the JavaScript runtime environment.
@@ -1433,4 +1443,16 @@ public extension ObjectGroup {
             ]
         )
     }
+    static let jsOffscreenObject = ObjectGroup(
+        name: "offscreen",
+        instanceType: .jsOffscreenObject,
+        properties: [
+            "prototype"         : .object(),
+            "Reason"            : .object(withProperties: JavaScriptEnvironment.OffscreenCreateParametersReason),
+        ],
+        methods: [
+            "closeDocument"     : [.opt(.function())] => .jsPromise,
+            "createDocument" : [.object(withProperties: ["justification", "reasons", "url"]), .opt(.function())] => .jsPromise,
+        ]
+    )
 }
