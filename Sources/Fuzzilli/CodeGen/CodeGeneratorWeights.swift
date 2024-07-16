@@ -188,7 +188,4 @@ public let codeGeneratorWeights = [
     "IteratorGenerator":                        5,
     "ConstructWithDifferentNewTargetGenerator": 5,
     "ObjectHierarchyGenerator":                 10,
-
-    // Extension API generators
-    "OffscreenGenerator":                 10,
 ]

@@ -1589,7 +1589,7 @@ public let CodeGenerators: [CodeGenerator] = [
             b.buildRecursive()
         }
     },
-
+    */
     CodeGenerator("NumberComputationGenerator") { b in
         // Generate a sequence of 3-7 random number computations on a couple of existing variables and some newly created constants.
         let numComputations = Int.random(in: 3...7)
@@ -1622,7 +1622,7 @@ public let CodeGenerators: [CodeGenerator] = [
             })
         }
     },
-
+    /*
     RecursiveCodeGenerator("ImitationGenerator", inputs: .one) { b, orig in
         // Build an object that imitates the given value.
         // The newly created object can be used in place of the original value, but may behave
@@ -1799,55 +1799,6 @@ public let CodeGenerators: [CodeGenerator] = [
         b.loadNewTarget()
     }
     */
-    CodeGenerator("NumberComputationGenerator") { b in
-        // Generate a sequence of 3-7 random number computations on a couple of existing variables and some newly created constants.
-        let numComputations = Int.random(in: 3...7)
-
-        // Common mathematical operations are exposed through the Math builtin in JavaScript.
-        let Math = b.loadBuiltin("Math")
-        b.hide(Math)        // Following code generators should use the numbers generated below, not the Math object.
-
-        var values = b.randomVariables(upTo: Int.random(in: 1...3))
-        for _ in 0..<Int.random(in: 1...2) {
-            values.append(b.loadInt(b.randomInt()))
-        }
-        for _ in 0..<Int.random(in: 0...1) {
-            values.append(b.loadFloat(b.randomFloat()))
-        }
-
-        for _ in 0..<numComputations {
-            withEqualProbability({
-                values.append(b.binary(chooseUniform(from: values), chooseUniform(from: values), with: chooseUniform(from: BinaryOperator.allCases)))
-            }, {
-                values.append(b.unary(chooseUniform(from: UnaryOperator.allCases), chooseUniform(from: values)))
-            }, {
-                // This can fail in tests, which lack the full JavaScriptEnvironment
-                guard let method = b.type(of: Math).randomMethod() else { return }
-                var args = [Variable]()
-                for _ in 0..<b.methodSignature(of: method, on: Math).numParameters {
-                    args.append(chooseUniform(from: values))
-                }
-                b.callMethod(method, on: Math, withArgs: args)
-            })
-        }
-    },
-    CodeGenerator("OffscreenGenerator") { b in
-        let api = b.loadBuiltin("chrome.offscreen")
-        b.hide(api)        // Following code generators should use the numbers generated below, not the Math object.
-        
-        // b.setProperty()
-        guard let method = b.type(of: api).randomMethod() else { return }
-
-        if method == "createDocument" {
-            let Reason = b.loadString(chooseUniform(from: JavaScriptEnvironment.OffscreenCreateParametersReason))
-            let justification = b.loadString(b.randomString())
-            let url = b.loadString("chrome://test")
-            let CreateParameters = b.createObject(with: ["justification": justification, "reasons": Reason, "url": url])
-            b.callMethod(method, on: api, withArgs: [CreateParameters], guard: true)
-        } else {
-            b.callMethod(method, on: api, guard: true)
-        }
-    },
 ]
 
 extension Array where Element == CodeGenerator {
