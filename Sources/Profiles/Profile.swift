@@ -14,33 +14,33 @@
 
 import Fuzzilli
 
-struct Profile {
-    let processArgs: (_ randomize: Bool) -> [String]
-    let processEnv: [String : String]
-    let maxExecsBeforeRespawn: Int
+public struct Profile {
+    public let processArgs: (_ randomize: Bool) -> [String]
+    public let processEnv: [String : String]
+    public let maxExecsBeforeRespawn: Int
     // Timeout is in milliseconds.
-    let timeout: Int
-    let codePrefix: String
-    let codeSuffix: String
-    let ecmaVersion: ECMAScriptVersion
+    public let timeout: Int
+    public let codePrefix: String
+    public let codeSuffix: String
+    public let ecmaVersion: ECMAScriptVersion
 
     // JavaScript code snippets that are executed at startup time to ensure that Fuzzilli and the target engine are configured correctly.
-    let startupTests: [(String, ExpectedStartupTestResult)]
+    public let startupTests: [(String, ExpectedStartupTestResult)]
 
-    let additionalCodeGenerators: [(CodeGenerator, Int)]
-    let additionalProgramTemplates: WeightedList<ProgramTemplate>
+    public let additionalCodeGenerators: [(CodeGenerator, Int)]
+    public let additionalProgramTemplates: WeightedList<ProgramTemplate>
 
-    let disabledCodeGenerators: [String]
-    let disabledMutators: [String]
+    public let disabledCodeGenerators: [String]
+    public let disabledMutators: [String]
 
-    let additionalBuiltins: [String: ILType]
-    let additionalObjectGroups: [ObjectGroup]
+    public let additionalBuiltins: [String: ILType]
+    public let additionalObjectGroups: [ObjectGroup]
 
     // An optional post-processor that is executed for every sample generated for fuzzing and can modify it.
-    let optionalPostProcessor: FuzzingPostProcessor?
+    public let optionalPostProcessor: FuzzingPostProcessor?
 }
 
-let profiles = [
+public let profiles = [
     "qtjs": qtjsProfile,
     "qjs": qjsProfile,
     "jsc": jscProfile,
@@ -51,4 +51,5 @@ let profiles = [
     "xs": xsProfile,
     "v8holefuzzing": v8HoleFuzzingProfile,
     "serenity": serenityProfile,
+    "crextensions": crextensionsProfile,
 ]

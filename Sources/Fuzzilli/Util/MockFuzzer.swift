@@ -154,7 +154,7 @@ class MockEvaluator: ProgramEvaluator {
 }
 
 /// Create a fuzzer instance usable for testing.
-public func makeMockFuzzer(config maybeConfiguration: Configuration? = nil, engine maybeEngine: FuzzEngine? = nil, runner maybeRunner: ScriptRunner? = nil, environment maybeEnvironment: Environment? = nil, evaluator maybeEvaluator: ProgramEvaluator? = nil, corpus maybeCorpus: Corpus? = nil) -> Fuzzer {
+public func makeMockFuzzer(config maybeConfiguration: Configuration? = nil, engine maybeEngine: FuzzEngine? = nil, runner maybeRunner: ScriptRunner? = nil, environment maybeEnvironment: Environment? = nil, evaluator maybeEvaluator: ProgramEvaluator? = nil, corpus maybeCorpus: Corpus? = nil, disabledCodeGenerators maybeDisabledCodeGenerators: Set<String> = [], additionalCodeGenerators maybeAdditionalCodeGenerators: [(CodeGenerator, Int)]? = []) -> Fuzzer {
     dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
 
     // The configuration of this fuzzer.
@@ -188,8 +188,19 @@ public func makeMockFuzzer(config maybeConfiguration: Configuration? = nil, engi
     // Minimizer to minimize crashes and interesting programs.
     let minimizer = Minimizer()
 
+    let disabledCodeGenerators = maybeDisabledCodeGenerators
+    let additionalCodeGenerators = maybeAdditionalCodeGenerators
+
     // Use all builtin CodeGenerators
-    let codeGenerators = WeightedList<CodeGenerator>(CodeGenerators.map { return ($0, codeGeneratorWeights[$0.name]!) })
+    var codeGenerators = WeightedList<CodeGenerator>(CodeGenerators.map { return ($0, codeGeneratorWeights[$0.name]!) })
+
+    for (generator, var weight) in (additionalCodeGenerators!) {
+        if disabledCodeGenerators.contains(generator.name) {
+            continue
+        }
+
+        codeGenerators.append(generator, withWeight: weight)
+    }
 
     // Use all builtin ProgramTemplates
     let programTemplates = WeightedList<ProgramTemplate>(ProgramTemplates.map { return ($0, programTemplateWeights[$0.name]!) })

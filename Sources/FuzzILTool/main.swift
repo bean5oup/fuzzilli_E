@@ -14,6 +14,7 @@
 
 import Foundation
 import Fuzzilli
+import Profiles
 
 let jsFileExtension = ".js"
 let protoBufFileExtension = ".fzil"
@@ -105,7 +106,8 @@ func loadProgramOrExit(from path: String) -> Program {
 
 let args = Arguments.parse(from: CommandLine.arguments)
 
-if args["-h"] != nil || args["--help"] != nil || args.numPositionalArguments != 1 || args.numOptionalArguments != 1 {
+// if args["-h"] != nil || args["--help"] != nil || args.numPositionalArguments != 1 || args.numOptionalArguments != 1 {
+if args["-h"] != nil || args["--help"] != nil || args.numPositionalArguments != 1 {
     print("""
           Usage:
           \(args.programName) option path
@@ -119,6 +121,7 @@ if args["-h"] != nil || args["--help"] != nil || args.numPositionalArguments != 
               --checkCorpus          : Attempts to load all .fzil files in a directory and checks if they are statically valid
               --compile              : Compile the given JavaScript program to a FuzzIL program. Requires node.js
               --generate             : Generate a random program using Fuzzilli's code generators and save it to the specified path.
+              --profile              : Used with --generate, applies profiles specialized for the target. e.g. ./FuzzILTool --generate --profile=crextensions test
           """)
     exit(0)
 }
@@ -207,7 +210,38 @@ else if args.has("--compile") {
 }
 
 else if args.has("--generate") {
-    let fuzzer = makeMockFuzzer(config: Configuration(logLevel: .warning, enableInspection: true), environment: JavaScriptEnvironment())
+    var profile: Profile! = nil
+    var profileName: String! = nil
+    var fuzzer: Fuzzer?
+    if args.has("--profile") {
+        if let val = args["--profile"], let p = profiles[val] {
+            profile = p
+            profileName = val
+        }
+        if profile == nil || profileName == nil {
+            print("Please provide a valid profile with --profile=profile_name. Available profiles: \(profiles.keys)")
+        }
+        fuzzer = makeMockFuzzer(
+                    config: Configuration(logLevel: .warning, enableInspection: true), 
+                    environment: JavaScriptEnvironment(additionalBuiltins: profile.additionalBuiltins, additionalObjectGroups: profile.additionalObjectGroups),
+                    disabledCodeGenerators: Set(profile.disabledCodeGenerators),
+                    additionalCodeGenerators: profile.additionalCodeGenerators)
+        if !profile.additionalBuiltins.isEmpty {
+            print("Loaded additional builtins from profile: \(profile.additionalBuiltins.map { $0.key })")
+        }
+        if !profile.additionalObjectGroups.isEmpty {
+            print("Loaded additional ObjectGroups from profile: \(profile.additionalObjectGroups.map { $0.name })")
+        }
+    }
+    else {
+        fuzzer = makeMockFuzzer(config: Configuration(logLevel: .warning, enableInspection: true), environment: JavaScriptEnvironment())
+    }
+
+    guard let fuzzer = fuzzer else {
+        print("Failed to create fuzzer.")
+        exit(1)
+    }
+
     let b = fuzzer.makeBuilder(mode: .conservative)
     b.buildPrefix()
     b.build(n: 50, by: .generating)

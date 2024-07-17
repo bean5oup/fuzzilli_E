@@ -14,6 +14,7 @@
 
 import Foundation
 import Fuzzilli
+import Profiles
 
 //
 // Process commandline arguments.
@@ -150,6 +151,7 @@ let diagnostics = args.has("--diagnostics")
 let inspect = args.has("--inspect")
 let swarmTesting = args.has("--swarmTesting")
 let argumentRandomization = args.has("--argumentRandomization")
+let extensions = args.has("--extensions")
 let additionalArguments = args["--additionalArguments"] ?? ""
 let tag = args["--tag"]
 

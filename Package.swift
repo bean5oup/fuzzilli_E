@@ -22,6 +22,7 @@ let package = Package(
         .macOS(.v11),
     ],
     products: [
+        .library(name: "Profiles", targets: ["Profiles"]),
         .library(name: "Fuzzilli",targets: ["Fuzzilli"]),
     ],
     dependencies: [
@@ -60,10 +61,14 @@ let package = Package(
                 dependencies: ["libreprl"]),
 
         .target(name: "FuzzilliCli",
+                dependencies: ["Fuzzilli","Profiles"]),
+        
+        .target(name: "Profiles",
                 dependencies: ["Fuzzilli"]),
-
+        
         .target(name: "FuzzILTool",
-                dependencies: ["Fuzzilli"]),
+                dependencies: ["Fuzzilli","Profiles"]),
+        
 
         .testTarget(name: "FuzzilliTests",
                     dependencies: ["Fuzzilli"],

@@ -1,5 +1,8 @@
 ﻿import Fuzzilli
 
+let OffscreenCreateParametersReason = ["TESTING", "AUDIO_PLAYBACK", "IFRAME_SCRIPTING", "DOM_SCRAPING", "BLOBS", "DOM_PARSER", "USER_MEDIA", "DISPLAY_MEDIA", "WEB_RTC", "CLIPBOARD", "LOCAL_STORAGE", "WORKERS", "BATTERY_STATUS", "MATCH_MEDIA", "GEOLOCATION"]
+let jsOffscreenObject = ILType.object(ofGroup: "Offscreen", withMethods: ["closeDocument", "createDocument"])
+
 fileprivate let OffscreenGenerator = CodeGenerator("OffscreenGenerator") { b in
     let api = b.loadBuiltin("chrome.offscreen")
     b.hide(api)        // Following code generators should use the numbers generated below, not the Math object.
@@ -8,7 +11,7 @@ fileprivate let OffscreenGenerator = CodeGenerator("OffscreenGenerator") { b in
     guard let method = b.type(of: api).randomMethod() else { return }
 
     if method == "createDocument" {
-        let Reason = b.loadString(chooseUniform(from: JavaScriptEnvironment.OffscreenCreateParametersReason))
+        let Reason = b.loadString(chooseUniform(from: OffscreenCreateParametersReason))
         let justification = b.loadString(b.randomString())
         let url = b.loadString("chrome://test")
         let CreateParameters = b.createObject(with: ["justification": justification, "reasons": Reason, "url": url])
@@ -17,97 +20,6 @@ fileprivate let OffscreenGenerator = CodeGenerator("OffscreenGenerator") { b in
         b.callMethod(method, on: api, guard: true)
     }
 }
-
-// fileprivate let ForceJITCompilationThroughLoopGenerator = CodeGenerator("ForceJITCompilationThroughLoopGenerator", inputs: .required(.function())) { b, f in
-//     assert(b.type(of: f).Is(.function()))
-//     let arguments = b.randomArguments(forCalling: f)
-
-//     b.buildRepeatLoop(n: 100) { _ in
-//         b.callFunction(f, withArgs: arguments)
-//     }
-// }
-
-// fileprivate let ForceTurboFanCompilationGenerator = CodeGenerator("ForceTurboFanCompilationGenerator", inputs: .required(.function())) { b, f in
-//     assert(b.type(of: f).Is(.function()))
-//     let arguments = b.randomArguments(forCalling: f)
-
-//     b.callFunction(f, withArgs: arguments)
-
-//     b.eval("%PrepareFunctionForOptimization(%@)", with: [f]);
-
-//     b.callFunction(f, withArgs: arguments)
-//     b.callFunction(f, withArgs: arguments)
-
-//     b.eval("%OptimizeFunctionOnNextCall(%@)", with: [f]);
-
-//     b.callFunction(f, withArgs: arguments)
-// }
-
-// fileprivate let ForceMaglevCompilationGenerator = CodeGenerator("ForceMaglevCompilationGenerator", inputs: .required(.function())) { b, f in
-//     assert(b.type(of: f).Is(.function()))
-//     let arguments = b.randomArguments(forCalling: f)
-
-//     b.callFunction(f, withArgs: arguments)
-
-//     b.eval("%PrepareFunctionForOptimization(%@)", with: [f]);
-
-//     b.callFunction(f, withArgs: arguments)
-//     b.callFunction(f, withArgs: arguments)
-
-//     b.eval("%OptimizeMaglevOnNextCall(%@)", with: [f]);
-
-//     b.callFunction(f, withArgs: arguments)
-// }
-
-// fileprivate let TurbofanVerifyTypeGenerator = CodeGenerator("TurbofanVerifyTypeGenerator", inputs: .one) { b, v in
-//     b.eval("%VerifyType(%@)", with: [v])
-// }
-
-// fileprivate let WorkerGenerator = RecursiveCodeGenerator("WorkerGenerator") { b in
-//     let workerSignature = Signature(withParameterCount: Int.random(in: 0...3))
-
-//     // TODO(cffsmith): currently Fuzzilli does not know that this code is sent
-//     // to another worker as a string. This has the consequence that we might
-//     // use variables inside the worker that are defined in a different scope
-//     // and as such they are not accessible / undefined. To fix this we should
-//     // define an Operation attribute that tells Fuzzilli to ignore variables
-//     // defined in outer scopes.
-//     let workerFunction = b.buildPlainFunction(with: .parameters(workerSignature.parameters)) { args in
-//         let this = b.loadThis()
-
-//         // Generate a random onmessage handler for incoming messages.
-//         let onmessageFunction = b.buildPlainFunction(with: .parameters(n: 1)) { args in
-//             b.buildRecursive(block: 1, of: 2)
-//         }
-//         b.setProperty("onmessage", of: this, to: onmessageFunction)
-
-//         b.buildRecursive(block: 2, of: 2)
-//     }
-//     let workerConstructor = b.loadBuiltin("Worker")
-
-//     let functionString = b.loadString("function")
-//     let argumentsArray = b.createArray(with: b.randomArguments(forCalling: workerFunction))
-
-//     let configObject = b.createObject(with: ["type": functionString, "arguments": argumentsArray])
-
-//     let worker = b.construct(workerConstructor, withArgs: [workerFunction, configObject])
-//     // Fuzzilli can now use the worker.
-// }
-
-// Insert random GC calls throughout our code.
-// fileprivate let GcGenerator = CodeGenerator("GcGenerator") { b in
-//     let gc = b.loadBuiltin("gc")
-
-//     // Do minor GCs more frequently.
-//     let type = b.loadString(probability(0.25) ? "major" : "minor")
-//     // If the execution type is 'async', gc() returns a Promise, we currently
-//     // do not really handle other than typing the return of gc to .undefined |
-//     // .jsPromise. One could either chain a .then or create two wrapper
-//     // functions that are differently typed such that fuzzilli always knows
-//     // what the type of the return value is.
-//     let execution = b.loadString(probability(0.5) ? "sync" : "async")
-//     b.callFunction(gc, withArgs: [b.createObject(with: ["type": type, "execution": execution])])
-// }
 
 fileprivate let MapTransitionFuzzer = ProgramTemplate("MapTransitionFuzzer") { b in
     // This template is meant to stress the v8 Map transition mechanisms.
@@ -415,7 +327,7 @@ fileprivate let RegExpFuzzer = ProgramTemplate("RegExpFuzzer") { b in
     b.build(n: 15)
 }
 
-let v8Profile = Profile(
+let crextensionsProfile = Profile(
     processArgs: { randomize in
         var args = [
             "--expose-gc",
@@ -604,22 +516,41 @@ let v8Profile = Profile(
     ],
 
     additionalProgramTemplates: WeightedList<ProgramTemplate>([
-        (MapTransitionFuzzer,    1),
-        (ValueSerializerFuzzer,  1),
-        (RegExpFuzzer,           1),
+        // (MapTransitionFuzzer,    1),
+        // (ValueSerializerFuzzer,  1),
+        // (RegExpFuzzer,           1),
     ]),
 
     disabledCodeGenerators: [],
 
     disabledMutators: [],
 
+    // registerBuiltin("chrome.offscreen", ofType: .jsOffscreenObject)
     additionalBuiltins: [
         "gc"                                            : .function([] => (.undefined | .jsPromise)),
         "d8"                                            : .object(),
         "Worker"                                        : .constructor([.anything, .object()] => .object(withMethods: ["postMessage","getMessage"])),
+    
+        // Register Exnteion API
+        /// Type of the JavaScript offscreen object
+        "chrome.offscreen"                              : jsOffscreenObject,
     ],
 
-    additionalObjectGroups: [],
+    additionalObjectGroups: [
+        // registerObjectGroup(.jsOffscreenObject)
+        ObjectGroup(
+            name: "offscreen",
+            instanceType: jsOffscreenObject,
+            properties: [
+                "prototype"         : .object(),
+                "Reason"            : .object(withProperties: OffscreenCreateParametersReason),
+            ],
+            methods: [
+                "closeDocument"     : [.opt(.function())] => .jsPromise,
+                "createDocument" : [.object(withProperties: ["justification", "reasons", "url"]), .opt(.function())] => .jsPromise,
+            ]
+        )
+    ],
 
     optionalPostProcessor: nil
 )
