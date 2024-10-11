@@ -42,12 +42,29 @@ if reprl_initialize_context(ctx, argv, envp, /* capture_stdout: */ 1, /* capture
     print("Failed to initialize REPRL context: \(String(cString: reprl_get_last_error(ctx)))")
 }
 
+func resetContext() {
+    reprl_destroy_context(ctx)
+    ctx = libreprl.reprl_create_context()
+    if ctx == nil {
+        print("Failed to create new REPRL context")
+        exit(1)
+    }
+
+    // let newArgv = convertToCArray(Array(CommandLine.arguments[1...]))
+    // let newEnvp = convertToCArray([])
+
+    if reprl_initialize_context(ctx, argv, envp, /* capture_stdout: */ 1, /* capture stderr: */ 1) != 0 {
+        print("Failed to initialize new REPRL context: \(String(cString: reprl_get_last_error(ctx)))")
+    }
+}
+
 func execute(_ code: String) -> (status: Int32, exec_time: UInt64) {
     var exec_time: UInt64 = 0
     var status: Int32 = 0
     code.withCString {
         status = reprl_execute(ctx, $0, UInt64(code.count), 1_000_000, &exec_time, 0)
     }
+    resetContext();
     return (status, exec_time)
 }
 
